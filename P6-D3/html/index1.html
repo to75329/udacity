@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<div id="chartContainer">  
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="http://dimplejs.org/dist/dimple.v2.3.0.min.js"></script>
+  <!script src="/lib/d3.v4.3.0.js"><!/script>
+  <!script src="/dist/dimple.v2.3.0.js"><!/script>
+  <script type="text/javascript">
+    // This is the simple vertical grouped stacked bar example
+    var svg = dimple.newSvg("#chartContainer", 590, 400);
+    d3.csv("/data/AirbusVsBoeingWeb.csv", function (data) {
+            
+      // Coerce the strings to numbers.
+      data.forEach(function(d) {
+      d.Year = +d.Year;
+      d.Month = +d.Month;
+      d.DelayedFlights = +d.DelayedFlights;
+      });
+
+      //Copying data for future use
+      var initialData = data;
+      //Keeping dropdown reference for future use
+      var dropDown = d3.select("#dropdown");
+
+      //data = data.filter(function(d) { if(d.Year != 2003){ return false;}});
+      data = dimple.filterData(data,"Year","2004");
+
+      var myChart = new dimple.chart(svg, data);
+      myChart.setBounds(65, 45, 505, 315)
+      var x = myChart.addCategoryAxis("x", ["Month", "MFR"]);
+      var y = myChart.addMeasureAxis("y", "DelayedFlights");
+      var s = myChart.addSeries("MODEL", dimple.plot.bar);
+      // Using the afterDraw callback means this code still works with animated
+      // draws (e.g. myChart.draw(1000)) or storyboards (though an onTick callback should
+      // also be used to clear the text from the previous frame)
+      s.afterDraw = function (shape, data) {
+        // Get the shape as a d3 selection
+        var s = d3.select(shape),
+          rect = {
+            x: parseFloat(s.attr("x")),
+            y: parseFloat(s.attr("y")),
+            width: parseFloat(s.attr("width")),
+            height: parseFloat(s.attr("height"))
+          };
+        // Only label bars where the text can fit
+        if (rect.height >= 8) {
+          // Add a text label for the value
+          svg.append("text")
+            // Position in the centre of the shape (vertical position is
+            // manually set due to cross-browser problems with baseline)
+            .attr("class", "homeMadeText")
+            .attr("x", rect.x + rect.width / 2)
+            .attr("y", rect.y + rect.height / 2 + 3.5)
+            // Centre align
+            .style("text-anchor", "middle")
+            .style("font-size", "10px")
+            .style("font-family", "sans-serif")
+            // Make it a little transparent to tone down the black
+            .style("opacity", 0.6)
+            // Prevent text cursor on hover and allow tooltips
+            .style("pointer-events", "none")
+            // Format the number
+            .text(d3.format(",.1f")(data.yValue / 1000) + "k");
+        }
+      };
+      myChart.addLegend(200, 10, 380, 20, "right");
+      myChart.draw();
+
+      //d3.select("#btn").on("click", function() {
+      d3.select("#dropdown").on("change", function() {
+      
+      var year = dropDown.node().options[dropDown.node().selectedIndex].value;
+      //Recalling initial data & copying for later modif.
+      var dataToFilter = initialData;
+
+      //Filtering copied data & binding to chart
+      myChart.data = dimple.filterData(dataToFilter,"Year",year);
+
+      //Removing previous homemade text
+      d3.selectAll("text.homeMadeText").remove();
+
+      //Redrawing
+      myChart.draw(1000);
+      });      
+    });
+  </script>
+</div>
+<select id="dropdown">
+  <option value="2004">2004</option>
+  <option value="2005">2005</option>
+  <option value="2006">2006</option>
+  <option value="2007">2007</option>
+  <option value="2008">2008</option>
+</select>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+  <style>
+    h1 {text-align:center;
+        color:rgb(137, 180, 255);}
+    p {text-align:left;
+       font:13px arial,helvetica,clean,sans-serif;
+      }
+    ol li {text-align:left;
+       font:13px arial,helvetica,clean,sans-serif;
+      }      
+    h1 boeing { color: rgb(132, 132, 132);}
+    h1 vs { color: black;}
+    label {font:13px arial,helvetica,clean,sans-serif;}
+  </style>
+  <title>AirbusVsBoeing</title>
+</head>
+<div id="chartContainer">
+  <h1>Airbus<vs>Vs</vs><boeing>Boeing</boeing></h1>
+  <p>Below interactive chart displays the monthly number of delayed flights int he US only due to carrier reasons, per manufacturer (Airbus in blue Vs Boeing in grey). Other delay causes have been excluded such as Weather, National Air System, Security, Late Aircraft, as they are all obviously independant of the aircraft model (cf <a href="https://www.transtats.bts.gov/Fields.asp?Table_ID=236">RITA website</a> for detailed explanation of delay causes). Each bar aggregates all the manufacturer's aircraft model contribution. The dropdown enables to change the displayed year which ranges from 2004 to 2008.<br> The data has been computed using two separate sources: Original RITA data reworked by the <a href = "http://stat-computing.org/dataexpo/2009/the-data.html">ASA</a> and the FAA's <a href = "https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download/">Aircraft Registry</a>.</p>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="http://dimplejs.org/dist/dimple.v2.3.0.min.js"></script>
+  <!script src="/lib/d3.v4.3.0.js"><!/script>
+  <!script src="/dist/dimple.v2.3.0.js"><!/script>
+  <script type="text/javascript">
+    // This is the simple vertical grouped stacked bar example
+    var svg = dimple.newSvg("#chartContainer", 590, 400);
+
+    d3.csv("/data/AirbusVsBoeingWeb.csv", function (data) {
+            
+      // Coerce the strings to numbers.
+      data.forEach(function(d) {
+      d.Year = +d.Year;
+      d.Month = +d.Month;
+      d.DelayedFlights = +d.DelayedFlights;      
+      });
+
+      //Copying data for future use
+      var initialData = data.slice();
+      //Keeping dropdown & checkbox reference for future use
+      var dropDown = d3.select("#dropdown");
+      var cbox1 = d3.select("#cbox1");
+
+      //data = data.filter(function(d) { if(d.Year != 2003){ return false;}});
+      data = dimple.filterData(data,"Year","2004");
+
+      var myChart = new dimple.chart(svg, data);
+      myChart.setBounds(65, 45, 505, 315)
+      var x = myChart.addCategoryAxis("x", ["Month", "MFR"]);
+      var y = myChart.addMeasureAxis("y", "DelayedFlights");
+      var s = myChart.addSeries("MODEL", dimple.plot.bar);
+      
+      var colorMap = new Map();
+    
+      //Airbus blue
+      colorMap.set("A300B4","rgb(10, 98, 255)");
+      colorMap.set("A319","rgb(175, 204, 255)");
+      colorMap.set("A320","rgb(214, 229, 255)");
+      colorMap.set("A321","rgb(137, 180, 255)");
+      colorMap.set("A340","rgb(84, 146, 255)");
+      
+
+      //Boeing grey
+      colorMap.set("737","rgb(216, 216, 216)");
+      colorMap.set("757","rgb(178, 178, 178)");
+      colorMap.set("767","rgb(132, 132, 132)");
+      colorMap.set("717","rgb(84, 84, 84)");
+      colorMap.set("777","rgb(33, 33, 33)");
+
+      //Changing colors
+      myChart.defaultColors = [
+        new dimple.color(colorMap.get("737")),//737
+        new dimple.color(colorMap.get("A320")),//A320
+        new dimple.color(colorMap.get("757")),//757
+        new dimple.color(colorMap.get("A319")),//A319
+        new dimple.color(colorMap.get("767")),//767
+        new dimple.color(colorMap.get("717")),//717     
+        new dimple.color(colorMap.get("747")),//747
+        new dimple.color(colorMap.get("A321")),//A321
+        new dimple.color(colorMap.get("777")),//777   
+        new dimple.color(colorMap.get("A300B4")),//A300B4
+        new dimple.color(colorMap.get("707")),//707
+        new dimple.color(colorMap.get("A340")),//A340
+        new dimple.color(colorMap.get("A330"))//A330        
+        ];
+
+      // Using the afterDraw callback means this code still works with animated
+      // draws (e.g. myChart.draw(1000)) or storyboards (though an onTick callback should
+      // also be used to clear the text from the previous frame)
+      s.afterDraw = function (shape, data) {
+        // Get the shape as a d3 selection
+        var s = d3.select(shape),
+          rect = {
+            x: parseFloat(s.attr("x")),
+            y: parseFloat(s.attr("y")),
+            width: parseFloat(s.attr("width")),
+            height: parseFloat(s.attr("height"))
+          };
+        // Only label bars where the text can fit
+        if (rect.height >= 8) {
+          // Add a text label for the value
+          svg.append("text")
+            // Position in the centre of the shape (vertical position is
+            // manually set due to cross-browser problems with baseline)
+            .attr("class", "homeMadeText")
+            .attr("x", rect.x + rect.width / 2)
+            .attr("y", rect.y + rect.height / 2 + 3.5)
+            // Centre align
+            .style("text-anchor", "middle")
+            .style("font-size", "10px")
+            .style("font-family", "sans-serif")
+            // Make it a little transparent to tone down the black
+            .style("opacity", 0.6)
+            // Prevent text cursor on hover and allow tooltips
+            .style("pointer-events", "none")
+            // Format the number
+            .text(d3.format(",.1f")(data.yValue / 1000) + "k");
+        }
+      };
+      var myLegend = myChart.addLegend(200, 10, 380, 20, "right");
+
+      myChart.draw();
+     
+      //On change listener for dropdown
+      d3.select("#dropdown").on("change", function() {
+      
+        var year = dropDown.node().options[dropDown.node().selectedIndex].value;
+        
+        //Recalling initial data & copying for later modif.
+        var dataToFilter = initialData;
+
+        //Filtering copied data & binding to chart
+        myChart.data = dimple.filterData(dataToFilter,"Year",year);
+
+        //Removing previous homemade text
+        d3.selectAll("text.homeMadeText").remove();
+
+        //Redrawing
+        myChart.draw(1000);
+      });
+
+      //On change listener for checkbox
+      d3.select("#cbox1").on("change", function() {
+
+        var corrFactor = {2004:2.09,2005:2.09,2006:2.09,2007:1.97,2008:1.86};
+        var year = dropDown.node().options[dropDown.node().selectedIndex].value;
+           
+        if(cbox1.node().checked) {// Checkbox is checked.
+         
+          for (var i = 0, len = initialData.length; i < len; i++) {
+            if (initialData[i].MFR == 'AIRBUS') {
+              initialData[i].DelayedFlights = initialData[i].DelayedFlights * corrFactor[initialData[i].Year];
+            }
+          }
+     
+
+          //Filtering copied data & binding to chart
+          myChart.data = dimple.filterData(initialData,"Year",year);
+          
+
+          //Removing previous homemade text
+          d3.selectAll("text.homeMadeText").remove();
+
+          //Redrawing
+          myChart.draw(1000);        
+
+        
+        } else {// Checkbox is not checked.
+          
+          for (var i = 0, len = initialData.length; i < len; i++) {
+            if (initialData[i].MFR == 'AIRBUS') {
+              initialData[i].DelayedFlights = initialData[i].DelayedFlights / corrFactor[initialData[i].Year];
+            }
+          }
+
+          //Filtering copied data & binding to chart
+          myChart.data = dimple.filterData(initialData,"Year",year);
+
+          //Removing previous homemade text
+          d3.selectAll("text.homeMadeText").remove();
+
+          //Redrawing
+          myChart.draw(1000);            
+        }
+      });
+
+
+    });
+  </script>
+</div>
+<select id="dropdown">
+  <option value="2004">2004</option>
+  <option value="2005">2005</option>
+  <option value="2006">2006</option>
+  <option value="2007">2007</option>
+  <option value="2008">2008</option>
+</select>
+<label>
+  <input type="checkbox" id="cbox1" value="checkbox1">
+  Use correction factor.
+</label>
+  <p>The correction factor is used to compensate a bias due to the fact that, historically, there are a lot more of Boeing aircrafts flying than Airbus ones. Corrective factor is a multiplier whose value depends on the year. Source for those values are extracted from wikipedia article <a href="https://en.wikipedia.org/wiki/Competition_between_Airbus_and_Boeing">"competition between Airbus and Boeing"<a>, table "Commercial airliners still in operation", column "Ratio". This is of course an approximation as figures are global and not specific to the US and values for 2004 and 2005 were not available and have been approximated to the 2006 value. <br>In my opinion, this interactive chart provides two major insights:<br> 
+  <ol>
+  <li>First, notice the change in Y scale as you increase the year: the quantity of Delayed flights is increasing a lot. My guess is that it does not mean that quality of service is decreasing but rather that the overall number of flights (and people travelling) increases dramatically from 2004 to 2008.</li>
+  <li>Then, notice the trend when comparing Boeing to Airbus with the corrective factor enabled. In 2004, both competitors are very close, in 2005 Airbus aknowledge much more delayed flights, and from 2006 to 2008 the tendancy inverts up to Airbus having much less delayed flights than Boeing.</li>
+  </ol>
+  </p>
+</html>
