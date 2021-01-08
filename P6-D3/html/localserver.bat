@@ -1,4 +1,4 @@
 pause
-cd "C:\Users\to75329\Desktop\DataScience\P6-D3\final_project\html"
-python -m SimpleHTTPServer 80
+cd "C:\Users\steph\VSCodeProjects\udacity\P6-D3\html"
+python -m http.server 80
 pause
